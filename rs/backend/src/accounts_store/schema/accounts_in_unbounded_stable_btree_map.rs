@@ -7,15 +7,12 @@
 
 use super::{Account, AccountsDbTrait, SchemaLabel};
 use core::ops::RangeBounds;
-#[cfg(test)]
-use ic_stable_structures::DefaultMemoryImpl;
-use ic_stable_structures::{btreemap::BTreeMap as StableBTreeMap, Memory};
+use ic_stable_structures::{btreemap::BTreeMap as StableBTreeMap, DefaultMemoryImpl, Memory, memory_manager::VirtualMemory};
 #[cfg(test)]
 use std::collections::BTreeMap as StdBTreeMap;
 use std::fmt;
 
-// TODO: Uncomment when used.
-// type ProductionMemoryType = VirtualMemory<DefaultMemoryImpl>;
+pub type ProductionMemoryType = VirtualMemory<DefaultMemoryImpl>;
 
 pub struct AccountsDbAsUnboundedStableBTreeMap<M>
 where
@@ -29,14 +26,12 @@ where
     M: Memory,
 {
     /// Creates a new, empty database.
-    #[cfg(test)]
     pub fn new(memory: M) -> Self {
         Self {
             accounts: StableBTreeMap::new(memory),
         }
     }
     /// Loads a database.
-    #[cfg(test)]
     pub fn load(memory: M) -> Self {
         Self {
             accounts: StableBTreeMap::load(memory),

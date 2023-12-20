@@ -5,7 +5,11 @@ use super::{map::AccountsDbAsMap, Account, AccountsDbBTreeMapTrait, AccountsDbTr
 use core::fmt;
 use core::ops::RangeBounds;
 use ic_cdk::println;
+#[cfg(test)]
+use ic_stable_structures::{memory_manager::VirtualMemory, DefaultMemoryImpl};
 use std::collections::BTreeMap;
+#[cfg(test)]
+use crate::accounts_store::schema::accounts_in_unbounded_stable_btree_map::{AccountsDbAsUnboundedStableBTreeMap, ProductionMemoryType};
 
 mod enum_boilerplate;
 mod migration;
@@ -54,6 +58,8 @@ impl fmt::Debug for Migration {
 #[derive(Debug)]
 pub enum AccountsDb {
     Map(AccountsDbAsMap),
+    #[cfg(test)]
+    UnboundedStableBTreeMap(AccountsDbAsUnboundedStableBTreeMap<ProductionMemoryType>),
 }
 
 // Constructors
@@ -65,18 +71,36 @@ impl AccountsDbAsProxy {
             migration: None,
         }
     }
+    #[cfg(test)]
+    pub fn new_with_unbounded_stable_btree_map(memory: VirtualMemory<DefaultMemoryImpl>) -> Self {
+        dfn_core::api::print("New Proxy: AccountsInStableMemory");
+        Self {
+            authoritative_db: AccountsDb::UnboundedStableBTreeMap(AccountsDbAsUnboundedStableBTreeMap::new(memory)),
+            migration: None,
+        }
+    }
+    #[cfg(test)]
+    pub fn load_with_unbounded_stable_btree_map(memory: VirtualMemory<DefaultMemoryImpl>) -> Self {
+        dfn_core::api::print("Load Proxy: AccountsInStableMemory");
+        Self {
+            authoritative_db: AccountsDb::UnboundedStableBTreeMap(AccountsDbAsUnboundedStableBTreeMap::load(memory)),
+            migration: None,
+        }
+    }
 }
 
-impl AccountsDbBTreeMapTrait for AccountsDbAsProxy {
-    fn from_map(map: BTreeMap<Vec<u8>, Account>) -> Self {
+impl AccountsDbAsProxy {
+    pub fn from_map(map: BTreeMap<Vec<u8>, Account>) -> Self {
         Self {
             authoritative_db: AccountsDb::Map(AccountsDbAsMap::from_map(map)),
             migration: None,
         }
     }
-    fn as_map(&self) -> &BTreeMap<Vec<u8>, Account> {
+    pub fn as_map(&self) -> Option<&BTreeMap<Vec<u8>, Account>> {
         match &self.authoritative_db {
-            AccountsDb::Map(map_db) => map_db.as_map(),
+            AccountsDb::Map(map_db) => Some(map_db.as_map()),
+            #[cfg(test)]
+            AccountsDb::UnboundedStableBTreeMap(_) => None,
         }
     }
 }

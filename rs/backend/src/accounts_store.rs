@@ -28,7 +28,7 @@ use std::time::{Duration, SystemTime};
 
 pub mod histogram;
 pub mod schema;
-use schema::{proxy::AccountsDbAsProxy, AccountsDbBTreeMapTrait, AccountsDbTrait};
+use schema::{proxy::AccountsDbAsProxy, AccountsDbTrait};
 
 type TransactionIndex = u64;
 
