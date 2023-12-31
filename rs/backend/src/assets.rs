@@ -1,3 +1,4 @@
+// Define the `upload` module.
 pub mod upload;
 use crate::arguments::{TemplateEngine, CANISTER_ARGUMENTS};
 use crate::metrics_encoder::MetricsEncoder;
@@ -7,9 +8,7 @@ use crate::StableState;
 use base64::{engine::general_purpose::STANDARD as BASE64_ENGINE, Engine};
 use candid::{CandidType, Decode, Encode};
 use dfn_core::api::ic0::time;
-use flate2::read::GzDecoder;
-use flate2::write::GzEncoder;
-use flate2::Compression;
+use flate2::{read::GzDecoder, write::GzEncoder, Compression};
 use ic_cdk::println;
 use ic_certified_map::{labeled, labeled_hash, AsHashTree, Hash, RbTree};
 use serde::{Deserialize, Serialize};
@@ -19,8 +18,10 @@ use std::collections::HashMap;
 use std::io::prelude::*;
 use std::io::Read;
 
+// Define a type for HTTP header fields.
 type HeaderField = (String, String);
 
+// Define a structure for an HTTP request.
 #[derive(Clone, Debug, CandidType, Deserialize)]
 pub struct HttpRequest {
     method: String,
@@ -29,6 +30,7 @@ pub struct HttpRequest {
     body: ByteBuf,
 }
 
+// Define a structure for an HTTP response.
 #[derive(Clone, Debug, CandidType, Deserialize)]
 pub struct HttpResponse {
     status_code: u16,
@@ -36,6 +38,7 @@ pub struct HttpResponse {
     body: ByteBuf,
 }
 
+// Enumerate possible content encodings for HTTP responses.
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum ContentEncoding {
     Identity,
@@ -58,12 +61,15 @@ impl ContentEncoding {
     }
 }
 
+// Label for HTTP assets.
 const LABEL_ASSETS: &[u8] = b"http_assets";
 
+// Define a structure to store asset hashes.
 #[derive(Default, Debug, Eq, PartialEq)]
 pub struct AssetHashes(RbTree<Vec<u8>, Hash>);
 
 impl From<&Assets> for AssetHashes {
+    // Create `AssetHashes` from `Assets`.
     fn from(assets: &Assets) -> Self {
         let mut asset_hashes = Self::default();
         for (path, asset) in assets.0.iter() {
@@ -84,6 +90,7 @@ pub struct Asset {
     stable: bool,
 }
 
+// Create a new instance of `Asset`.
 impl Asset {
     pub fn new(bytes: Vec<u8>) -> Self {
         Self {
@@ -93,6 +100,7 @@ impl Asset {
         }
     }
 
+    // Create a new instance of `Asset` marked as stable.
     pub fn new_stable(bytes: Vec<u8>) -> Self {
         Self {
             headers: vec![],
@@ -101,12 +109,14 @@ impl Asset {
         }
     }
 
+    // Add a header to the asset.
     pub fn with_header<S: Into<String>>(mut self, key: S, val: S) -> Self {
         self.headers.push((key.into(), val.into()));
         self
     }
 }
 
+// Define a structure to store a collection of assets.
 #[derive(Default, CandidType, Deserialize, PartialEq, Eq, Debug)]
 pub struct Assets(HashMap<String, Asset>);
 
@@ -194,10 +204,12 @@ impl Assets {
     }
 }
 
+// Handle metrics requests.
 pub fn http_request(req: HttpRequest) -> HttpResponse {
     let parts: Vec<&str> = req.url.split('?').collect();
     match parts[0] {
         "/metrics" => {
+            // Handle metrics requests.
             let now;
             unsafe {
                 now = time();
@@ -205,6 +217,7 @@ pub fn http_request(req: HttpRequest) -> HttpResponse {
             let mut writer = MetricsEncoder::new(vec![], now / 1_000_000);
             match encode_metrics(&mut writer) {
                 Ok(()) => {
+                    // Successful encoding of metrics.
                     let body = writer.into_inner();
                     HttpResponse {
                         status_code: 200,
@@ -257,6 +270,7 @@ pub fn http_request(req: HttpRequest) -> HttpResponse {
     }
 }
 
+// Determine the content type of a request path based on its suffix.
 fn content_type_of(request_path: &str) -> Option<&'static str> {
     if request_path.ends_with('/') {
         return Some("text/html");
